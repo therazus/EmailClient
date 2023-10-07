@@ -1,0 +1,587 @@
+// 200185X
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import java.io.*;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.Date;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+
+
+
+
+
+public class EmailClient {
+
+    public static void main(String[] args) {
+        String details = null;
+        String contactType = null;
+
+        ContactBook contactBook = new ContactBook();
+        MailUnit mailUnit = new MailUnit();
+        mailUnit.deserializeEmail();
+        contactBook.loadContactObj();
+        contactBook.sendBirthdayWishes(mailUnit, contactBook);
+
+
+        Scanner scanner = new Scanner(System.in);
+        while (true) {
+            System.out.println("Enter option type: \n"
+                    + "1 - Adding a new recipient\n"
+                    + "2 - Sending an email\n"
+                    + "3 - Printing out all the recipients who have birthdays\n"
+                    + "4 - Printing out details of all the emails sent\n"
+                    + "5 - Printing out the number of recipient objects in the application\n"
+                    + "6 - Exit.");
+
+            try {
+                int option = scanner.nextInt();
+
+
+                switch (option) {
+                    case 1:
+                        System.out.println("Enter contact type.\n"
+                                + "1 - Official\n"
+                                + "2 - Office Friend\n"
+                                + "3 - Personal");
+
+                        int type = scanner.nextInt();
+
+                        switch (type) {
+                            case 1:
+                                System.out.println("Enter contact details. input format - <name>,<email>,<designation> ");
+                                scanner.nextLine();
+                                details = scanner.nextLine();
+                                contactType = "official";
+                                break;
+                            case 2:
+                                System.out.println("Enter contact details. input format - <name>,<email>,<designation>,<birthday in (yyyy/MM/dd)> ");
+                                scanner.nextLine();
+                                details = scanner.nextLine();
+                                contactType = "office_friend";
+                                break;
+                            case 3:
+                                System.out.println("Enter contact details. input format - <name>,<nickname>,<email>,<birthday in (yyyy/MM/dd)> ");
+                                scanner.nextLine();
+                                details = scanner.nextLine();
+                                contactType = "personal";
+                                break;
+                            default:
+                                System.out.println("Enter a correct input.");
+                                break;
+                        }
+                        boolean status = false;
+                        try {
+                            status = contactBook.addContact(contactType, details);
+                        } catch (Exception e) {
+                            System.out.println(e.getMessage());
+                        }
+                        if (!status) {
+                            System.out.println("Input Invalid. Try Again!!");
+                        } else System.out.println("New Recipient added successfully.");
+
+
+                        // code to add a new recipient
+                        // store details in clientList.txt file
+                        break;
+                    case 2:
+                        // input format - email, subject, content
+                        // code to send an email
+
+                        System.out.println("Enter the email in following format'\n"
+                                + "mail, subject, content");
+
+                        scanner.nextLine();
+                        String email = scanner.nextLine();
+
+                        List<String> emailData = Arrays.stream(email.split(",")).map(String::trim).collect(Collectors.toList());
+
+
+                        try {
+                            String recipient = emailData.get(0);
+                            String subject = emailData.get(1);
+                            String text = emailData.get(2);
+
+                            Email mail = new Email(recipient, subject, text);
+
+
+                            mailUnit.sendMail(mail);
+                        } catch (IndexOutOfBoundsException e) {
+                            System.out.println("Please enter the email in correct format.");
+                        } catch (RuntimeException e) {
+                            System.out.println("Enter a valid email.");
+                        }
+                        break;
+                    case 3:
+                        // input format - yyyy/MM/dd (ex: 2018/09/17)
+                        // code to print recipients who have birthdays on the given date
+                        System.out.println("Enter a date in YYYY/MM/DD to check the birthdays on that day.");
+
+                        scanner.nextLine();
+                        String sDate = scanner.nextLine();
+
+                        Date date = StringToDate.toDate(sDate);
+
+                        ArrayList<Friend> bDayFriends = contactBook.getBDayFriends(date);
+                        System.out.println("Friends whose birthday on " + sDate + " are...");
+                        for (Friend friend : bDayFriends) {
+                            System.out.println(friend.getName() + " - " + friend.getEmail());
+
+
+                        }
+                        break;
+                    case 4:
+                        // input format - yyyy/MM/dd (ex: 2018/09/17)
+                        // code to print the details of all the emails sent on the input date
+                        System.out.println("Enter a date in YYYY/MM/DD to filter email on that day.");
+
+                        scanner.nextLine();
+                        sDate = scanner.nextLine();
+                        date = StringToDate.toDate(sDate);
+                        List<Email> filteredMails = mailUnit.filterMailsByDate(date);
+
+                        System.out.println("Emails sent on " + sDate + " are...\n");
+                        for (Email mail : filteredMails) {
+                            System.out.println("Recipient- " + mail.getRecipient()
+                                    + " | Subject- " + mail.getSubject());
+                        }
+                        break;
+                    case 5:
+                        // code to print the number of recipient objects in the application
+                        System.out.println("There are " + contactBook.getNumOfContacts() + " contacts in client list.");
+                        break;
+
+                    case 6:
+                        System.out.println("Email Client Closed.");
+                        return;
+
+                    default:
+                        System.out.println("Input a correct number.");
+                        break;
+
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Invalid Input");
+                scanner.next();
+            }
+
+            // start email client
+            // code to create objects for each recipient in clientList.txt
+            // use necessary variables, methods and classes
+        }
+
+    }
+}
+
+    //_______________________________________________________________________________//
+
+
+    class Recipient {
+        private String name;
+        private String email;
+
+        public Recipient(String name, String email) {
+            this.name = name;
+            this.email = email;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+    }
+    class Official extends Recipient {
+        //class for official contacts extends the contact class
+        private String post;
+
+        public Official(String name, String email, String post) {
+            super(name, email);
+            this.post = post;
+        }
+    }
+
+    class OfficeFriend extends Recipient implements Friend{
+        //class for office friends contacts extends the contact class and friends interface
+
+        private Date birthday;
+        final String birthday_wish = "Wish you a Happy Birthday. \nRasula.";
+        private String post ;
+        public OfficeFriend(String name, String email, String post, String bDay) {
+            super(name, email);
+            this.post = post;
+            this.birthday = StringToDate.toDate(bDay);
+        }
+
+        @Override
+        public Date getBirthday() {
+            return birthday;
+        }
+
+        @Override
+        public String getBirthday_wish() {
+            return birthday_wish;
+        }
+    }
+
+    class Personal extends Recipient implements Friend{
+        //class for personal contacts extends the contact class and friends interface
+        private Date birthday;
+        final String birthday_wish = "Hugs and love on your birthday. \nRasula.";
+        private String nickname;
+
+        public Personal(String name, String email, String nickname, String bDay){
+            super(name, email);
+            this.nickname = nickname;
+            this.birthday = StringToDate.toDate(bDay);
+
+        }
+
+        @Override
+        public Date getBirthday() {
+            return birthday;
+        }
+
+        @Override
+        public String getBirthday_wish() {
+            return birthday_wish;
+        }
+    }
+
+    //__________________________________________________________________
+
+
+    interface Friend {
+        // interface for friends
+
+        Date birthday = null;
+        String birthday_wish = null;
+
+        String getName();
+        String getEmail();
+        Date getBirthday();
+        String getBirthday_wish();
+
+
+    }
+
+    //__________________________________________________________________
+    class Email implements Serializable {
+        //class for emails implementing the serializable
+        private String recipient;
+        private String subject;
+        private String message;
+        private Date date;
+
+        public Email(String recipient, String subject, String message) {
+            if(recipient.contains("@")){
+                this.recipient = recipient;
+                this.subject = subject;
+                this.message = message;
+            }
+            else throw new RuntimeException();
+
+        }
+
+        public String getRecipient() {
+            return recipient;
+        }
+
+        public String getSubject() {
+            return subject;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public Date getDate() {
+            return date;
+        }
+
+        public void setDate(Date date) {
+            this.date = date;
+        }
+    }
+
+    //_________________________________________________________________
+
+    class ContactBook {
+        private final List<Recipient> recipients = new ArrayList<>();
+
+        private static int numOfContacts = 0;
+        private final List<Friend> friends = new ArrayList<>();
+
+
+        private boolean createContactObj(String contactType, String details) throws IOException {
+            //method to create contact objects
+            List<String> dataList = Arrays.stream(details.split(",")).map(String::trim).collect(Collectors.toList());
+
+            Recipient newRecipient;
+
+            //check the contact type
+            switch (contactType){
+                case "official":
+                    newRecipient = new Official(dataList.get(0), dataList.get(1), dataList.get(2));
+                    break;
+                case "office_friend":
+                    newRecipient = new OfficeFriend(dataList.get(0), dataList.get(1), dataList.get(2), dataList.get(3));
+                    friends.add((Friend) newRecipient);
+
+                    break;
+                case "personal":
+                    newRecipient = new Personal(dataList.get(0), dataList.get(2), dataList.get(1), dataList.get(3));
+                    friends.add((Friend) newRecipient);
+
+                    break;
+                default:
+                    return false;
+            }
+
+            //increment the number of contacts by 1
+            numOfContacts ++;
+            //add contact to the recipients list
+            recipients.add(newRecipient);
+
+            return true;
+        }
+
+
+
+        public boolean addContact(String contactType, String details){
+            //add a new contact
+            String ctDetails = contactType + ": " + details;
+            try {
+                if(createContactObj(contactType, details)){
+                    contactToFile(ctDetails);
+                    return true;
+                }
+                else return false;
+            } catch (IOException e) {
+                System.out.println(e.getMessage());;
+            }
+            return false;
+        }
+
+        public void loadContactObj(){
+            //load contact to the client
+            try {
+
+                File file = new File("clientlist.txt");
+                FileReader reader = new FileReader(file);
+                BufferedReader br = new BufferedReader(reader);
+                String ctDetails = null;
+                while ((ctDetails = br.readLine()) != null) {
+                    String contactType = ctDetails.split(":")[0].toLowerCase().trim();
+                    String details = ctDetails.split(":")[1].trim();
+                    createContactObj(contactType, details);
+                }
+                br.close();
+            }
+            catch(IOException e) {
+                System.out.println(e.getMessage());
+            }
+
+
+        }
+
+        public int getNumOfContacts(){
+            //get the number of contacts
+            return numOfContacts;
+        }
+
+        private void contactToFile(String ctDetails){
+            //add contact to the file
+            try {
+                FileWriter writer = new FileWriter("clientList.txt",true);
+                writer.write(ctDetails + "\n");
+                writer.close();
+            } catch(IOException ex) {
+                ex.printStackTrace();
+            }
+
+        }
+
+        public ArrayList<Friend> getBDayFriends(Date date){
+            //get a list of friends who has birthday on a specific day
+            ArrayList<Friend> bdayFriends = new ArrayList<>();
+
+            //check the friends list
+            for (Friend friend: friends){
+                if (date.equals(friend.getBirthday())){
+                    bdayFriends.add(friend);
+                }
+            }
+            return bdayFriends;
+        }
+
+        public void sendBirthdayWishes(MailUnit mailUnit, ContactBook contactBook){
+            // send birthday wishes
+            Email bDayMail;
+            Date today = StringToDate.getToday();
+            ArrayList<Email> todayMails = mailUnit.filterMailsByDate(today);
+
+            // check the friend list for send birthdays
+            for (Friend friend: friends){
+                Date fBday = friend.getBirthday();
+                if (fBday.getMonth() == today.getMonth() && fBday.getDate() == today.getDate()){
+                    bDayMail = new Email(friend.getEmail(), "Birthday Wish", friend.getBirthday_wish());
+                    if (checkSentBdayWish(todayMails,friend.getEmail())) {
+                        System.out.println("Sending birth day wish to " + friend.getName());
+                        mailUnit.sendMail(bDayMail);
+                    }
+                }
+            }
+        }
+
+        private boolean checkSentBdayWish(ArrayList<Email> todayMails, String bdMail){
+            ArrayList<String> mailAdd = new ArrayList<>();
+
+            for (Email mail: todayMails){
+                mailAdd.add(mail.getRecipient());
+            }
+            if (mailAdd.contains(bdMail)) return false;
+
+            else return true;
+        }
+    }
+
+    //_________________________________________________________________
+
+
+
+    class MailUnit implements Serializable {
+        final String myEmail = "rasula.20@cse.mrt.ac.lk";
+        final String password = "vkdgljkpplnnlmry";
+        public ArrayList<Email> sentMails = new ArrayList<>();
+
+        public void sendMail(Email email){
+            //method for send mails.
+            Properties properties = new Properties();
+
+            Date today = StringToDate.getToday();
+
+            properties.put("mail.smtp.auth", "true");
+            properties.put("mail.smtp.starttls.enable", "true");
+            properties.put("mail.smtp.host", "smtp.gmail.com");
+            properties.put("mail.smtp.port", 587);
+
+
+
+            Session session = Session.getInstance(properties, new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(myEmail, password);
+                }
+            });
+
+            try {
+                //build a message
+                Message message = new MimeMessage(session);
+                message.setFrom(new InternetAddress(myEmail));
+                message.setRecipients(
+                        Message.RecipientType.TO,
+                        InternetAddress.parse(email.getRecipient())
+                );
+                message.setSubject(email.getSubject());
+                message.setText(email.getMessage());
+
+
+                Transport.send(message);
+                //set mail date for current day
+                email.setDate(today);
+                sentMails.add(email);
+                //serialize the email
+                serializeEmail();
+                System.out.println("Message sent successfully.");
+            }
+            catch (MessagingException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void serializeEmail(){
+            //serialize the email objects as email list objectt
+            try {
+                FileOutputStream fileStream = new FileOutputStream("emails.ser");
+                ObjectOutputStream os = new ObjectOutputStream(fileStream);
+                os.writeObject(sentMails);
+                os.close();
+                fileStream.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void deserializeEmail(){
+            //deserialize the email list
+            try {
+                FileInputStream fileStream = new FileInputStream("emails.ser");
+                ObjectInputStream os = new ObjectInputStream(fileStream);
+                sentMails = (ArrayList) os.readObject();
+                os.close();
+                fileStream.close();
+            } catch (FileNotFoundException e) {
+                e.getMessage();
+            }
+            catch (IOException e) {
+                System.out.println(e.getMessage());
+            } catch (ClassNotFoundException e) {
+                System.out.println(e.getMessage());
+            }
+
+
+        }
+
+        public ArrayList<Email> filterMailsByDate(Date date){
+            //filter emails by date
+            ArrayList<Email> filteredMails = new ArrayList<>();
+            for (Email mail: sentMails){
+                if (date.equals(mail.getDate())){
+                    filteredMails.add(mail);
+                }
+            }
+            return filteredMails;
+        }
+
+    }
+
+    //_________________________________________________________________
+
+    class StringToDate {
+        public static Date toDate(String dString){
+            DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
+            try {
+                Date date = formatter.parse(dString);
+                return date;
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public static Date getToday(){
+            DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
+            Date today = new Date();
+            try {
+                return formatter.parse(formatter.format(today));
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+
+
+
+// create more classes needed for the implementation (remove the  public access modifier from classes when you submit your code)

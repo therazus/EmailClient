@@ -1,0 +1,5 @@
+personal: Rasula,me,rasulaahangama@gmail.com,2000/8/1
+personal: Sahiru,BD,sahiru2k@gmail.com,2000/08/14
+office_friend: Dumindu,dumindupathum@gmail.com,TL,2000/05/20
+official: Bushan,dumindupathum@gmail.com,TL
+office_friend: Dumindu,dumindupathum@gmail.com,TL,2000/05/20
